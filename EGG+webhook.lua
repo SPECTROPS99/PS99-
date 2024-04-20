@@ -16,6 +16,7 @@ local OpenEggsToggle = false
 MainTab:AddToggle({
     Name = "Open Eggs",
     Default = OpenEggsToggle,
+    Save = true,
     Callback = function(Value)
         OpenEggsToggle = Value
     end
@@ -24,6 +25,7 @@ MainTab:AddTextbox({
     Name = "Egg Number",
     Default = "187",
     TextDisappear = true,
+    Save = true,
     Callback = function(Value)
         EggNumber = tonumber(Value)
     end
@@ -31,6 +33,7 @@ MainTab:AddTextbox({
 MainTab:AddToggle({
     Name = "Auto Pick Up Orbs",
     Default = AutoLootToggle,
+    Save = true,
     Callback = function(Value)
         AutoLootToggle = Value
     end
@@ -38,6 +41,7 @@ MainTab:AddToggle({
 MainTab:AddToggle({
     Name = "3DRendering",
     Default = Enable3DRender,
+    Save = true,
     Callback = function(Value)
         Enable3DRender = Value
         game:GetService("RunService"):Set3dRenderingEnabled(Enable3DRender)
@@ -46,6 +50,7 @@ MainTab:AddToggle({
 MainTab:AddTextbox({
     Name = "Webhook",
     Default = WebhookURL,
+    Save = true,
     TextDisappear = true,
     Callback = function(Value)
         WebhookURL = Value
