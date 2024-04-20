@@ -165,17 +165,24 @@ local function CheckForNewHuge()
     currentHugePets = CurrentHugePets()
 end
 
+local function Tp2Egg()
+    while wait(10) do
+        if OpenEggsToggle then
+            local Egg = Workspace.__THINGS.Eggs:FindFirstChild("World2")[EggNumber .. " - Egg Capsule"]
+            local Teleport = Egg.Tier.CFrame
+            Players.LocalPlayer.Character.HumanoidRootPart.CFrame = Teleport
+        end
+    end
+end
+
+spawn(Tp2Egg)
 
 local function OpenEgg()
     if OpenEggsToggle then
         while OpenEggsToggle do
             local PlayerInfo = require(ReplicatedStorage.Library).Save.Get()
             local EggName = EggsUtilMod.GetIdByNumber(EggNumber)
-            local Egg = Workspace.__THINGS.Eggs:FindFirstChild("World2")[EggNumber .. " - Egg Capsule"]
-            local Teleport = Egg.Tier.CFrame
-    
             EggAnim.PlayEggAnimation = function() end
-            Players.LocalPlayer.Character.HumanoidRootPart.CFrame = Teleport
             ReplicatedStorage.Network.Eggs_RequestPurchase:InvokeServer(EggName, PlayerInfo.EggHatchCount)
         end
     end
