@@ -1,0 +1,58 @@
+getgenv().autoHatch = true
+
+local EGG_TO_HATCH = "Maple Egg"
+local AMOUNT_TO_HATCH = 91
+
+
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = game.Players.LocalPlayer
+
+LocalPlayer.PlayerScripts.Scripts.Core["Idle Tracking"].Enabled = false
+
+if getconnections then
+    for _, v in pairs(getconnections(LocalPlayer.Idled)) do
+        v:Disable()
+    end
+else
+    LocalPlayer.Idled:Connect(function()
+        VirtualUser:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+    end)
+end
+
+local function getEgg()
+    local counterEggs = 113
+    while true do
+        local eggData = require(game:GetService("ReplicatedStorage").Library.Util.EggsUtil).GetByNumber(counterEggs)
+        if eggData then
+            print(eggData.name)
+            print(eggData.eggNumber)
+            if eggData.name == EGG_TO_HATCH then
+                return eggData
+            end
+            counterEggs = counterEggs + 1
+        else
+            break
+        end
+    end
+    return nil
+end
+
+local eggData = getEgg()
+local eggCFrame
+for _, v in pairs(game:GetService("Workspace").__THINGS.Eggs.World2:GetChildren()) do
+    if string.find(v.Name, tostring(eggData.eggNumber) .. " - ") then
+        eggCFrame = v.Tier.CFrame
+    end
+end
+
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = eggCFrame
+
+hookfunction(getsenv(game.Players.LocalPlayer.PlayerScripts.Scripts.Game["Egg Opening Frontend"]).PlayEggAnimation, function()
+    return
+end)
+while getgenv().autoHatch do
+    game:GetService("ReplicatedStorage").Network.Eggs_RequestPurchase:InvokeServer(EGG_TO_HATCH, AMOUNT_TO_HATCH)
+    task.wait()
+end
