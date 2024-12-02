@@ -27,7 +27,7 @@ game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1974.463
 
 -- Function to get the thumbnail ID for a pet
 local function GetThumbnailID(petName)
-    local PetInventory = require(ReplicatedStorage.Library).Directory.Pets
+    local PetInventory = require(ReplicatedStorage.Library.Client.Save).Get().Inventory.Pet
     for _, petData in pairs(PetInventory) do
         if petData.name == petName then
             local thumbnailID = string.gsub(petData.thumbnail, "rbxassetid://", "")
@@ -112,7 +112,7 @@ local currentHugePets = CurrentHugePets()
 -- Function to check for new Huge pets and send a webhook
 local function checkForNewHuge()
     local NewHuge = {}
-    local PetInventory = require(ReplicatedStorage.Library).Save.Get().Inventory.Pet
+    local PetInventory = require(ReplicatedStorage.Library.Client.Save).Get().Inventory.Pet
 
     for uid, pet in pairs(PetInventory) do
         if string.find(pet.id, "Huge") then
