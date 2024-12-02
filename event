@@ -114,7 +114,7 @@ local currentHugePets = CurrentHugePets()
 -- Function to check for new Huge pets and send a webhook
 local function checkForNewHuge()
     local NewHuge = {}
-    local PetInventory = require(ReplicatedStorage.Library).Save.Get().Inventory.Pet
+    local PetInventory = require(ReplicatedStorage.Library.Client.Save).Get().Inventory.Pet
 
     for uid, pet in pairs(PetInventory) do
         if string.find(pet.id, "Huge") then
