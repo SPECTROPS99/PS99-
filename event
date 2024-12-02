@@ -20,8 +20,9 @@ local HIDE_PETS = true
 
 LocalPlayer.PlayerScripts.Scripts.Core["Idle Tracking"].Enabled = false
 
+task.wait(10)
 game.Players.LocalPlayer.character.HumanoidRootPart.CFrame = workspace.__THINGS.Instances.AutumnEvent.Teleports.Enter.CFrame
-task.wait(15)
+task.wait(10)
 game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1974.46301, 16.0914631, -22481.2832)
 
 
