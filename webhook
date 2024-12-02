@@ -1,0 +1,123 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+
+-- Function to get the thumbnail ID for a pet
+local function GetThumbnailID(petName)
+    local PetInventory = require(ReplicatedStorage.Library).Directory.Pets
+    for _, petData in pairs(PetInventory) do
+        if petData.name == petName then
+            local thumbnailID = string.gsub(petData.thumbnail, "rbxassetid://", "")
+            return thumbnailID
+        end
+    end
+    return nil -- Return nil if no matching pet is found
+end
+
+-- Function to send a webhook message
+local function SendWebhook(playerName, petName, petUID)
+    local thumbnailURL = "https://via.placeholder.com/250" -- Default thumbnail URL for fallback
+    local thumbnailID = GetThumbnailID(petName)
+    
+    if thumbnailID then
+        local success, response = pcall(function()
+            return HttpService:JSONDecode(game:HttpGet("https://thumbnails.roblox.com/v1/assets?assetIds=" .. thumbnailID .. "&size=250x250&format=Png&isCircular=false"))
+        end)
+
+        if success and response and response.data and response.data[1] then
+            thumbnailURL = response.data[1].imageUrl
+        else
+            warn("Failed to fetch thumbnail for pet:", petName)
+        end
+    else
+        warn("Thumbnail ID not found for pet:", petName)
+    end
+
+    local WebhookMessage = HttpService:JSONEncode({
+        content = "<@" .. discordid .. ">",
+        embeds = {{
+            title = playerName .. " Obtained a " .. petName,
+            color = 0x00FF00,
+            timestamp = DateTime.now():ToIsoDate(),
+            thumbnail = {
+                url = thumbnailURL
+            },
+            fields = {
+                {
+                    name = "Pet UID",
+                    value = petUID,
+                    inline = true
+                },
+            }
+        }}
+    })
+
+    local success, response = pcall(function()
+        return request({
+            Url = WebhookURL,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = WebhookMessage
+        })
+    end)
+
+    if success then
+        print("Webhook sent for", playerName, "obtaining", petName)
+    else
+        warn("Webhook request failed:", response)
+    end
+end
+
+-- Function to get the current inventory of Huge pets
+local function CurrentHugePets()
+    local PetInventory = require(ReplicatedStorage.Library).Save.Get().Inventory.Pet
+    local HugePets = {}
+
+    for uid, pet in pairs(PetInventory) do
+        if string.find(pet.id, "Huge") then
+            table.insert(HugePets, {id = pet.id, uid = uid})
+        end
+    end
+
+    return HugePets
+end
+
+local currentHugePets = CurrentHugePets()
+
+-- Function to check for new Huge pets and send a webhook
+local function checkForNewHuge()
+    local NewHuge = {}
+    local PetInventory = require(ReplicatedStorage.Library).Save.Get().Inventory.Pet
+
+    for uid, pet in pairs(PetInventory) do
+        if string.find(pet.id, "Huge") then
+            local isNew = true
+
+            for _, existingPetData in ipairs(currentHugePets) do
+                if existingPetData.uid == uid then
+                    isNew = false
+                    break
+                end
+            end
+
+            if isNew then
+                table.insert(NewHuge, {id = pet.id, uid = uid})
+            end
+        end
+    end
+
+    if #NewHuge > 0 then
+        for _, petData in ipairs(NewHuge) do
+            SendWebhook(game.Players.LocalPlayer.Name, petData.id, petData.uid)
+        end
+    end
+
+    currentHugePets = CurrentHugePets()
+end
+
+-- Main loop to continuously check for new Huge pets
+while wait(5) do -- Adjust the wait time as needed
+    checkForNewHuge()
+end
