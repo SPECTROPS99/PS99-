@@ -1,7 +1,7 @@
 getgenv().autoHatch = true
 
 local EGG_TO_HATCH = "Maple Egg"
-local AMOUNT_TO_HATCH = "nil"
+local AMOUNT_TO_HATCH = require(game.ReplicatedStorage.Library.Client.EggCmds).GetMaxHatch()
 local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = game.Players.LocalPlayer
 
