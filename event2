@@ -1,4 +1,3 @@
---important
 local WebhookURL = Webhook
 local discordid = Discordid
 local EGG_TO_HATCH = "Maple Egg"
