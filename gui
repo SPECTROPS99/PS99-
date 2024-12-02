@@ -1,0 +1,99 @@
+-- Gui to Lua
+-- Version: 3.2
+
+-- Instances:
+
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local TextLabel = Instance.new("TextLabel")
+local TextLabel_2 = Instance.new("TextLabel")
+local TextLabel_3 = Instance.new("TextLabel")
+
+--Properties:
+
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
+Frame.BorderSizePixel = 0
+Frame.Size = UDim2.new(0, 1891, 0, 804)
+
+TextLabel.Parent = ScreenGui
+TextLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TextLabel.BackgroundTransparency = 1.000
+TextLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TextLabel.Position = UDim2.new(0.34373346, 0, 0.019900497, 0)
+TextLabel.Size = UDim2.new(0, 515, 0, 171)
+TextLabel.Font = Enum.Font.SourceSansBold
+TextLabel.Text = "More coming in the future!"
+TextLabel.TextColor3 = Color3.fromRGB(156, 156, 156)
+TextLabel.TextSize = 50.000
+
+TextLabel_2.Parent = ScreenGui
+TextLabel_2.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TextLabel_2.BackgroundTransparency = 1.000
+TextLabel_2.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TextLabel_2.Position = UDim2.new(0.34373346, 0, 0.318407953, 0)
+TextLabel_2.Size = UDim2.new(0, 515, 0, 128)
+TextLabel_2.Font = Enum.Font.SourceSansBold
+TextLabel_2.Text = "Time spend"
+TextLabel_2.TextColor3 = Color3.fromRGB(149, 149, 149)
+TextLabel_2.TextSize = 50.000
+
+TextLabel_3.Parent = ScreenGui
+TextLabel_3.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TextLabel_3.BackgroundTransparency = 0.990
+TextLabel_3.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TextLabel_3.Position = UDim2.new(-0.0528820716, 0, -0.0534825884, 0)
+TextLabel_3.Size = UDim2.new(0, 270, 0, 161)
+TextLabel_3.Font = Enum.Font.SourceSansBold
+TextLabel_3.Text = "S"
+TextLabel_3.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextLabel_3.TextScaled = true
+TextLabel_3.TextSize = 100.000
+TextLabel_3.TextWrapped = true
+
+-- Scripts:
+
+local function EDYXBSJ_fake_script() -- ScreenGui.LocalScript 
+	local script = Instance.new('LocalScript', ScreenGui)
+
+	-- LocalScript in StarterGui -> ScreenGui
+	local screenGui = script.Parent
+	
+	-- Create the TextLabel if it doesn't exist
+	local clockLabel = screenGui:FindFirstChild("Clock")
+	if not clockLabel then
+		clockLabel = Instance.new("TextLabel")
+		clockLabel.Name = "Clock"
+		clockLabel.Parent = screenGui
+		clockLabel.Size = UDim2.new(0, 200, 0, 50)
+		clockLabel.Position = UDim2.new(0.427, 0, 0.478, 0) -- Corrected Position
+		clockLabel.BackgroundTransparency = 1 -- Transparent background
+		clockLabel.TextColor3 = Color3.fromRGB(136, 136, 136) -- Corrected TextColor3
+		clockLabel.Font = Enum.Font.GothamBold -- Bold font
+		clockLabel.TextSize = 50
+		clockLabel.Text = "00:00:00"
+	end
+	
+	-- Track the time
+	local timeInGame = 0
+	
+	-- Function to format time as hours:minutes:seconds
+	local function formatTime(seconds)
+		local hours = math.floor(seconds / 3600)
+		local minutes = math.floor((seconds % 3600) / 60)
+		local secs = seconds % 60
+		return string.format("%02d:%02d:%02d", hours, minutes, secs)
+	end
+	
+	-- Update the timer every second
+	while true do
+		wait(1)
+		timeInGame = timeInGame + 1
+		clockLabel.Text = formatTime(timeInGame)
+	end
+	
+end
+coroutine.wrap(EDYXBSJ_fake_script)()
