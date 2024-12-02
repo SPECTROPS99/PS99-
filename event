@@ -3,7 +3,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/SPECTROPS99/PS99-/ref
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SPECTROPS99/PS99-/refs/heads/main/egg%20hatch"))() ----- hatches the egg
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SPECTROPS99/PS99-/refs/heads/main/fruits"))() --- for fruits
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SPECTROPS99/PS99-/refs/heads/main/webhook"))() --- webhook
-loadstring(game:HttpGet("https://raw.githubusercontent.com/SPECTROPS99/PS99-/refs/heads/main/webhook"))() --- gui
+loadstring(game:HttpGet("https://raw.githubusercontent.com/SPECTROPS99/PS99-/refs/heads/main/gui"))() --- gui
 
 game.Players.LocalPlayer.character.HumanoidRootPart.CFrame = workspace.__THINGS.Instances.AutumnEvent.Teleports.Enter.CFrame
 game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1974.46301, 16.0914631, -22481.2832)
