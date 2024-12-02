@@ -1,7 +1,7 @@
 --important
-
-local WebhookURL = ""
-local discordid = ""
+local WebhookURL = Webhook
+local discordid = Discordid
+local EGG_TO_HATCH = "Maple Egg"
 
 ----
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
