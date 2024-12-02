@@ -2,8 +2,8 @@ getgenv().autoHatch = true
 
 --important
 
-local WebhookURL = Webhook
-local discordid = Discordid
+local WebhookURL = getgenv().Config.Webhook
+local discordid = etgenv().Config.Discordid
 
 ----
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
