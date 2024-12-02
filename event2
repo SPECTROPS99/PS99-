@@ -1,0 +1,449 @@
+--important
+local WebhookURL = Webhook
+local discordid = Discordid
+local EGG_TO_HATCH = "Maple Egg"
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local fruitsModule = require(game:GetService("ReplicatedStorage").Library.Client.FruitCmds)
+local fruitIds = {}
+local neededFruits = {}
+local AMOUNT_TO_HATCH = require(game.ReplicatedStorage.Library.Client.EggCmds).GetMaxHatch()
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = game.Players.LocalPlayer
+local HIDE_PETS = true
+
+
+
+LocalPlayer.PlayerScripts.Scripts.Core["Idle Tracking"].Enabled = false
+
+task.wait(10)
+game.Players.LocalPlayer.character.HumanoidRootPart.CFrame = workspace.__THINGS.Instances.AutumnEvent.Teleports.Enter.CFrame
+task.wait(10)
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1974.46301, 16.0914631, -22481.2832)
+
+
+-- Function to get the thumbnail ID for a pet
+local function GetThumbnailID(petName)
+    local PetInventory = require(ReplicatedStorage.Library.Client.Save).Get().Inventory.Pet
+    for _, petData in pairs(PetInventory) do
+        if petData.name == petName then
+            local thumbnailID = string.gsub(petData.thumbnail, "rbxassetid://", "")
+            return thumbnailID
+        end
+    end
+    return nil -- Return nil if no matching pet is found
+end
+
+-- Function to send a webhook message
+local function SendWebhook(playerName, petName, petUID)
+    local thumbnailURL = "https://via.placeholder.com/250" -- Default thumbnail URL for fallback
+    local thumbnailID = GetThumbnailID(petName)
+    
+    if thumbnailID then
+        local success, response = pcall(function()
+            return HttpService:JSONDecode(game:HttpGet("https://thumbnails.roblox.com/v1/assets?assetIds=" .. thumbnailID .. "&size=250x250&format=Png&isCircular=false"))
+        end)
+
+        if success and response and response.data and response.data[1] then
+            thumbnailURL = response.data[1].imageUrl
+        else
+            warn("Failed to fetch thumbnail for pet:", petName)
+        end
+    else
+        warn("Thumbnail ID not found for pet:", petName)
+    end
+
+    local WebhookMessage = HttpService:JSONEncode({
+        content = "<@" .. discordid .. ">",
+        embeds = {{
+            title = playerName .. " Obtained a " .. petName,
+            color = 0x00FF00,
+            timestamp = DateTime.now():ToIsoDate(),
+            thumbnail = {
+                url = thumbnailURL
+            },
+            fields = {
+                {
+                    name = "Pet UID",
+                    value = petUID,
+                    inline = true
+                },
+            }
+        }}
+    })
+
+    local success, response = pcall(function()
+        return request({
+            Url = WebhookURL,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = WebhookMessage
+        })
+    end)
+
+    if success then
+        print("Webhook sent for", playerName, "obtaining", petName)
+    else
+        warn("Webhook request failed:", response)
+    end
+end
+
+-- Function to get the current inventory of Huge pets
+local function CurrentHugePets()
+    local PetInventory = require(ReplicatedStorage.Library.Client.Save).Get().Inventory.Pet
+    local HugePets = {}
+
+    for uid, pet in pairs(PetInventory) do
+        if string.find(pet.id, "Huge") then
+            table.insert(HugePets, {id = pet.id, uid = uid})
+        end
+    end
+
+    return HugePets
+end
+
+local currentHugePets = CurrentHugePets()
+
+-- Function to check for new Huge pets and send a webhook
+local function checkForNewHuge()
+    local NewHuge = {}
+    local PetInventory = require(ReplicatedStorage.Library.Client.Save).Get().Inventory.Pet
+
+    for uid, pet in pairs(PetInventory) do
+        if string.find(pet.id, "Huge") then
+            local isNew = true
+
+            for _, existingPetData in ipairs(currentHugePets) do
+                if existingPetData.uid == uid then
+                    isNew = false
+                    break
+                end
+            end
+
+            if isNew then
+                table.insert(NewHuge, {id = pet.id, uid = uid})
+            end
+        end
+    end
+
+    if #NewHuge > 0 then
+        for _, petData in ipairs(NewHuge) do
+            SendWebhook(game.Players.LocalPlayer.Name, petData.id, petData.uid)
+        end
+    end
+
+    currentHugePets = CurrentHugePets()
+end
+
+-- Main loop to continuously check for new Huge pets
+while wait(5) do -- Adjust the wait time as needed
+    checkForNewHuge()
+end
+
+for itemId, itemData in pairs(require(game:GetService("ReplicatedStorage").Library).Save.Get().Inventory.Fruit) do
+    if itemData["id"] ~= "Candycane" then
+        local fruitName = itemData["id"]
+        fruitIds[fruitName] = itemId
+        table.insert(neededFruits, fruitName)
+    end
+end
+
+for fruitName, fruitData in pairs(fruitsModule.GetActiveFruits()) do
+    if #fruitData < 20 then
+        fruitsModule.Consume(fruitIds[fruitName], (20 - #fruitData))
+    end
+    for i = 1, #neededFruits do
+        if neededFruits[i] == fruitName then
+            table.remove(neededFruits, i)
+        end
+    end
+    task.wait(0.15)
+end
+
+for _, fruit in neededFruits do
+    fruitsModule.Consume(fruitIds[fruit], 20)
+    task.wait(0.15)
+end
+
+require(game:GetService("ReplicatedStorage").Library.Client.Network).Fired("Fruits: Update"):Connect(function(data)
+    task.wait(1)
+    for fruitName, fruitData in pairs(data) do
+        if #fruitData < 20 then
+            fruitsModule.Consume(fruitIds[fruitName])
+            task.wait(0.15)
+        end
+    end
+end)
+
+if getconnections then
+    for _, v in pairs(getconnections(LocalPlayer.Idled)) do
+        v:Disable()
+    end
+else
+    LocalPlayer.Idled:Connect(function()
+        VirtualUser:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+    end)
+end
+
+local function getEgg()
+    local counterEggs = 113
+    while true do
+        local eggData = require(game:GetService("ReplicatedStorage").Library.Util.EggsUtil).GetByNumber(counterEggs)
+        if eggData then
+            print(eggData.name)
+            print(eggData.eggNumber)
+            if eggData.name == EGG_TO_HATCH then
+                return eggData
+            end
+            counterEggs = counterEggs + 1
+        else
+            break
+        end
+    end
+    return nil
+end
+
+local eggData = getEgg()
+local eggCFrame
+for _, v in pairs(game:GetService("Workspace").__THINGS.Eggs.World2:GetChildren()) do
+    if string.find(v.Name, tostring(eggData.eggNumber) .. " - ") then
+        eggCFrame = v.Tier.CFrame
+    end
+end
+
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = eggCFrame
+
+hookfunction(getsenv(game.Players.LocalPlayer.PlayerScripts.Scripts.Game["Egg Opening Frontend"]).PlayEggAnimation, function()
+    return
+end)
+while getgenv().autoHatch do
+    game:GetService("ReplicatedStorage").Network.Eggs_RequestPurchase:InvokeServer(EGG_TO_HATCH, AMOUNT_TO_HATCH)
+    task.wait()
+end
+until game:IsLoaded()
+  
+UserSettings():GetService("UserGameSettings").MasterVolume = 0
+local decalsyeeted = true
+local g = game
+local w = g.Workspace
+local l = g.Lighting
+local t = w.Terrain
+sethiddenproperty(l,"Technology",2)
+sethiddenproperty(t,"Decoration",false)
+game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Chat,false)
+t.WaterWaveSize = 0
+t.WaterWaveSpeed = 0
+t.WaterReflectance = 0
+t.WaterTransparency = 0
+l.GlobalShadows = 0
+l.FogEnd = 9e9
+l.Brightness = 0
+settings().Rendering.QualityLevel = "0"
+settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
+task.wait()
+for i, v in pairs(w:GetDescendants()) do
+    if v:IsA("BasePart") and not v:IsA("MeshPart") then
+        v.Material = "Plastic"
+        v.Reflectance = 0
+    elseif (v:IsA("Decal") or v:IsA("Texture")) and decalsyeeted then
+        v.Transparency = 1
+    elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+        v.Lifetime = NumberRange.new(0)
+    elseif v:IsA("Explosion") then
+        v.BlastPressure = 1
+        v.BlastRadius = 1
+    elseif v:IsA("Fire") or v:IsA("SpotLight") or v:IsA("Smoke") or v:IsA("Sparkles") then
+        v.Enabled = false
+    elseif v:IsA("MeshPart") and decalsyeeted then
+        v.Material = "Plastic"
+        v.Reflectance = 0
+        v.TextureID = 10385902758728957
+    elseif v:IsA("SpecialMesh") and decalsyeeted  then
+        v.TextureId=0
+    elseif v:IsA("ShirtGraphic") and decalsyeeted then
+        v.Graphic=1
+    elseif (v:IsA("Shirt") or v:IsA("Pants")) and decalsyeeted then
+        v[v.ClassName.."Template"]=1
+        elseif v.Name == "Foilage" and v:IsA("Folder") then
+        v:Destroy()
+    elseif string.find(v.Name, "^Tree.*$") or string.find(v.Name, "Water") or string.find(v.Name, "^Bush.*$") or string.find(v.Name, "^grass.*$") then
+        task.wait()
+        v:Destroy()
+	elseif string.find(v.Name, "Model") or string.find(v.Name, "Debris") or string.find(v.Name, "Interactable") then
+        v:Destroy()	
+    end
+end
+for i = 1,#l:GetChildren() do
+    e=l:GetChildren()[i]
+    if e:IsA("BlurEffect") or e:IsA("SunRaysEffect") or e:IsA("ColorCorrectionEffect") or e:IsA("BloomEffect") or e:IsA("DepthOfFieldEffect") then
+        e.Enabled = false
+    end
+end
+w.DescendantAdded:Connect(function(v)
+   if v:IsA("BasePart") and not v:IsA("MeshPart") then
+        v.Material = "Plastic"
+        v.Reflectance = 0
+    elseif v:IsA("Decal") or v:IsA("Texture") and decalsyeeted then
+        v.Transparency = 1
+    elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+        v.Lifetime = NumberRange.new(0)
+    elseif v:IsA("Explosion") then
+        v.BlastPressure = 1
+        v.BlastRadius = 1
+    elseif v:IsA("Fire") or v:IsA("SpotLight") or v:IsA("Smoke") or v:IsA("Sparkles") then
+        v.Enabled = false
+    elseif v:IsA("MeshPart") and decalsyeeted then
+        v.Material = "Plastic"
+        v.Reflectance = 0
+        v.TextureID = 10385902758728957
+    elseif v:IsA("SpecialMesh") and decalsyeeted then
+        v.TextureId=0
+    elseif v:IsA("ShirtGraphic") and decalsyeeted then
+        v.ShirtGraphic=1
+    elseif (v:IsA("Shirt") or v:IsA("Pants")) and decalsyeeted then
+        v[v.ClassName.."Template"]=1
+        elseif v.Name == "Foilage" and v:IsA("Folder") then
+        v:Destroy()
+    elseif string.find(v.Name, "^Tree.*$") or string.find(v.Name, "Water") or string.find(v.Name, "^Bush.*$") or string.find(v.Name, "^grass.*$") then
+        task.wait()
+        v:Destroy()
+	elseif string.find(v.Name, "Model") or string.find(v.Name, "Debris") or string.find(v.Name, "Interactable") then
+        v:Destroy()
+	end
+    task.wait()
+end)
+ 
+if HIDE_PETS then
+pcall(function()
+    for _, v in pairs(game:GetService("Workspace"):FindFirstChild("__THINGS"):GetChildren()) do
+        if table.find({"Pets"}, v.Name) then
+            v:Destroy()
+        end
+    end
+    end)
+end
+
+local VirtualInputManager = Instance.new("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
+local Hooks = {}
+
+local function TrueString(String)
+    if type(String) ~= "string" then
+        return false
+    end
+
+    return (string.split(String, "\0"))[1]
+end
+
+local function SortArguments(self, ...)
+    return self, {...}
+end
+
+local function hookGetSerivce(...)
+    local OldGetService; OldGetService = function(...)
+        local self, Index = ...
+        local Response = OldGetService(...)
+    
+        if type(Index) == "string" and TrueString(Index) == "VirtualInputManager" then
+            error(("'%s' is not a valid Service name"):format(TrueString(Index)))
+            return;
+        end
+    
+        return Response
+    end
+end
+
+local OldFindService = hookfunction(game.FindService, function(...)
+    local self, Index = ...
+    local Response = OldFindService(...)
+
+    if type(Index) == "string" and TrueString(Index) == "VirtualInputManager" then
+        return;
+    end
+
+    return Response
+end)
+
+hookGetSerivce(game.GetService)
+hookGetSerivce(game.getService)
+hookGetSerivce(game.service)
+
+local OldNamecall; OldNamecall = hookmetamethod(game, "__namecall", function(...)
+    local self, Arguments = SortArguments(...)
+    local Method = getnamecallmethod()
+
+    if typeof(self) == "Instance" and self == game and Method:lower():match("service") and TrueString(Arguments[1]) == "VirtualInputManager" then
+        if Method == "FindService" then
+            return;
+        end
+
+        local Success, Error = pcall(function()
+            setnamecallmethod(Method)
+            game[Method](game, "VirtualFuckOff")
+        end)
+
+        if not Error:match("is not a valid member") then
+            error(Error:replace("VirtualFuckOff", "VirtualInputManager"))
+            return;
+        end
+    end
+
+    return OldNamecall(...)
+end)
+
+local OldWindow; OldWindow = hookmetamethod(UserInputService.WindowFocused, "__index", function(...)
+    local self, Index = ...
+    local Response = OldWindow(...)
+
+    if type(Response) ~= "function" and (tostring(self):find("WindowFocused") or tostring(self):find("WindowFocusReleased")) and not table.find(Hooks, Response) then
+        table.insert(Hooks, Response)
+
+        if Index:lower() == "wait" then
+            local Old2; Old2 = hookfunction(Response, function(...)
+                local self1 = ...
+
+                if self1 == self then
+                    self1 = Instance.new("BindableEvent").Event
+                end
+
+                return Old2(self1)
+            end)
+        elseif Index:lower() == "connect" then
+            local Old2; Old2 = hookfunction(Response, function(...)
+                local self1, Function = ...
+
+                if self1 == self then
+                    Function = function() return; end
+                end
+
+                return Old2(self1, Function)
+            end)
+        end
+    end
+
+    return Response
+end)
+
+for i, v in next, getconnections(UserInputService.WindowFocusReleased) do
+    v:Disable()
+end
+
+for i, v in next, getconnections(UserInputService.WindowFocused) do
+    v:Disable()
+end
+
+if not iswindowactive() and not getgenv().WindowFocused then
+    firesignal(UserInputService.WindowFocused)
+    getgenv().WindowFocused = true
+end
+
+while true do
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Unknown, false, game)
+
+    task.wait(Random.new():NextNumber(15, 120))
+end
