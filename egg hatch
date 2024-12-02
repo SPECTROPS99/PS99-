@@ -1,9 +1,5 @@
 getgenv().autoHatch = true
 
-local EGG_TO_HATCH = "Maple Egg"
-local AMOUNT_TO_HATCH = 91
-
-
 local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = game.Players.LocalPlayer
 
