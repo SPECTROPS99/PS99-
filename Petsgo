@@ -4,73 +4,60 @@ local player = game.Players.LocalPlayer
 local playerGui = player:FindFirstChild("PlayerGui")
 local starterGui = game:GetService("StarterGui")
 
--- Ensure the game is fully loaded
+task.wait(10)
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(10.1208735, 4.25818634, 8.8608036)
+
 repeat task.wait() until game:IsLoaded()
+local LocalPlayer = game:GetService("Players").LocalPlayer
+repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild("__INTRO")
 
--- Ensure the player’s character is fully loaded
-repeat task.wait() until player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-local character = player.Character
-local rootPart = character:FindFirstChild("HumanoidRootPart")
-
--- Teleport player AFTER game is loaded and character exists
-task.wait(10) -- Wait 10 seconds before teleporting
-if rootPart then
-    rootPart.CFrame = CFrame.new(10.1208735, 4.25818634, 8.8608036)
-    print("Teleported player successfully.")
-else
-    warn("Failed to teleport: HumanoidRootPart not found.")
-end
-
--- Ensure intro GUI is removed before continuing
-repeat task.wait() until not playerGui:FindFirstChild("__INTRO")
-
--- Disable idle tracking (prevents being kicked for AFK)
 local Network = require(game.ReplicatedStorage.Library.Client.Network)
 
-if player.PlayerScripts:FindFirstChild("Scripts") then
-    local coreScripts = player.PlayerScripts.Scripts.Core
-    if coreScripts:FindFirstChild("Idle Tracking") then
-        coreScripts["Idle Tracking"].Enabled = false
-    end
-    if coreScripts:FindFirstChild("Server Closing") then
-        coreScripts["Server Closing"].Enabled = false
-    end
-end
+LocalPlayer.PlayerScripts.Scripts.Core["Idle Tracking"].Enabled = false
+LocalPlayer.PlayerScripts.Scripts.Core["Server Closing"].Enabled = false
 
 Network.Fire("Idle Tracking: Stop Timer")
-for _, conn in ipairs(getconnections(player.Idled)) do 
-    conn:Disable()
+for _, conn in ipairs(getconnections(LocalPlayer.Idled)) do 
+    conn:Disable() 
 end
 
--- Remove all other ScreenGUIs except the new UI
-if playerGui then
-    for _, gui in pairs(playerGui:GetChildren()) do
-        if gui:IsA("ScreenGui") and gui.Name ~= "SpectroScreenGui" then
-            gui:Destroy()
-        end
+if not playerGui then
+    return warn("PlayerGui not found")
+end
+
+-- Schakel de standaard Roblox UI volledig uit
+pcall(function()
+    starterGui:SetCore("TopbarEnabled", false) -- Verbergt de topbar
+    starterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false) -- Verbergt alles van de standaard UI
+end)
+
+-- Verwijder ALLE andere ScreenGui's
+for _, gui in pairs(playerGui:GetChildren()) do
+    if gui:IsA("ScreenGui") and gui.Name ~= "PiraScreenGui" then
+        gui:Destroy() -- Verwijderen in plaats van uitschakelen
     end
 end
 
--- Create new ScreenGUI
+-- Maak een ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SpectroScreenGui"
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false -- Blijft bestaan na respawn
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- Zorgt voor overlappende elementen
 ScreenGui.Parent = playerGui
 
--- Create a black background frame
+-- Achtergrond (volledige schermbedekking)
 local Background = Instance.new("Frame", ScreenGui)
 Background.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Background.Size = UDim2.new(1, 0, 1, 0)
-Background.ZIndex = 10000
+Background.ZIndex = 10000 -- Hoogste laag
 
--- Content frame
+-- Frame voor content
 local Frame = Instance.new("Frame", Background)
 Frame.Size = UDim2.new(1, 0, 1, 0)
 Frame.BackgroundTransparency = 1
-Frame.ZIndex = 10001
+Frame.ZIndex = 10001 -- Nog hoger dan de achtergrond
 
 local ListLayout = Instance.new("UIListLayout", Frame)
 ListLayout.Padding = UDim.new(0, 5)
@@ -86,7 +73,7 @@ Module.CreateText = function(Number, Text, Size)
     TextLabel.Text = Text
     TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     TextLabel.TextScaled = true
-    TextLabel.ZIndex = 10002
+    TextLabel.ZIndex = 10002 -- Boven alles
     return TextLabel
 end
 
@@ -106,72 +93,5 @@ Module.Format = function(int)
     end
     return string.format(index == 1 and "%d" or "%.2f%s", int, Suffix[index])
 end
-
--- ***AutoMail System***
-local function AutoMail()
-    repeat task.wait() until game:IsLoaded()
-    repeat task.wait() until not playerGui:FindFirstChild("__INTRO")
-
-    local Client = game:GetService("ReplicatedStorage").Library.Client
-    local Network = require(Client.Network)
-    local SaveModule = require(Client.Save)
-
-    local PetIds = {"Huge", "Titanic"}
-    local AutoMailSettings = {
-        ["Loop Interval"] = 60, -- Wait time between checks
-        ["Users"] = {"Player1", "Player2", "Player3"}, -- List of users to send mail to
-        ["Items"] = {
-            ["ExamplePetId"] = { Class = "Pet", pt = 1, sh = 0, tn = false, Amount = 1 }
-        }
-    }
-
-    while task.wait(AutoMailSettings["Loop Interval"]) do
-        local Queue = {}
-
-        -- Scan Inventory
-        for Class, Items in pairs(SaveModule.Get()["Inventory"]) do
-            for uid, v in pairs(Items) do
-                local PetCheck = (Class == "Pet") and table.find(PetIds, v.id)
-                local Config = false
-
-                -- Check if item matches AutoMail criteria
-                for Id, Info in pairs(AutoMailSettings["Items"]) do
-                    if Id == v.id and Info.Class == Class and Info.pt == v.pt and Info.sh == v.sh and Info.tn == v.tn and (Info.Amount or 0) <= (v._am or 1) then
-                        Config = true break
-                    end
-                end
-
-                if Class == "Egg" or Config or PetCheck and not Queue[uid] then
-                    Queue[uid] = { Class = Class, Info = v }
-                end
-            end
-        end
-
-        -- Process Queue
-        for uid, Data in pairs(Queue) do
-            local Unlocked = false
-            local Mailed = false
-            local v = Data.Info
-
-            -- Unlock item if locked
-            if v._lk then
-                while not Unlocked do
-                    Unlocked, err = Network.Invoke("Locking_SetLocked", uid, false)
-                    if not Unlocked then task.wait(0.1) end
-                end
-            end
-
-            -- Send item via Mailbox
-            local User = AutoMailSettings["Users"][math.random(1, #AutoMailSettings["Users"])]
-            while not Mailed do
-                Mailed, err = Network.Invoke("Mailbox: Send", User, "Bless", Data.Class, uid, (v._am or 1))
-                if not Mailed then task.wait(0.1) end
-            end
-        end
-    end
-end
-
--- Start AutoMail in a separate thread
-task.spawn(AutoMail)
 
 return Module
