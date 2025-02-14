@@ -1,29 +1,12 @@
 local Module = {}
 
 local player = game.Players.LocalPlayer
-local playerGui = player:FindFirstChild("PlayerGui")
+local playerGui = player:WaitForChild("PlayerGui") -- Ensures PlayerGui is loaded
 local starterGui = game:GetService("StarterGui")
 
-task.wait(10)
-game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(10.1208735, 4.25818634, 8.8608036)
+-- *** GUI Loads After 3 Seconds ***
+task.wait(3)
 
-repeat task.wait() until game:IsLoaded()
-local LocalPlayer = game:GetService("Players").LocalPlayer
-repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild("__INTRO")
-
-local Network = require(game.ReplicatedStorage.Library.Client.Network)
-
-LocalPlayer.PlayerScripts.Scripts.Core["Idle Tracking"].Enabled = false
-LocalPlayer.PlayerScripts.Scripts.Core["Server Closing"].Enabled = false
-
-Network.Fire("Idle Tracking: Stop Timer")
-for _, conn in ipairs(getconnections(LocalPlayer.Idled)) do 
-    conn:Disable() 
-end
-
-if not playerGui then
-    return warn("PlayerGui not found")
-end
 
 -- Schakel de standaard Roblox UI volledig uit
 pcall(function()
@@ -38,34 +21,39 @@ for _, gui in pairs(playerGui:GetChildren()) do
     end
 end
 
--- Maak een ScreenGui
+-- Create new ScreenGUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SpectroScreenGui"
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
-ScreenGui.ResetOnSpawn = false -- Blijft bestaan na respawn
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- Zorgt voor overlappende elementen
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = playerGui
 
--- Achtergrond (volledige schermbedekking)
-local Background = Instance.new("Frame", ScreenGui)
+-- Background
+local Background = Instance.new("Frame")
+Background.Parent = ScreenGui
 Background.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Background.Size = UDim2.new(1, 0, 1, 0)
-Background.ZIndex = 10000 -- Hoogste laag
+Background.ZIndex = 10000
 
--- Frame voor content
-local Frame = Instance.new("Frame", Background)
+-- Frame for content
+local Frame = Instance.new("Frame")
+Frame.Parent = Background
 Frame.Size = UDim2.new(1, 0, 1, 0)
 Frame.BackgroundTransparency = 1
-Frame.ZIndex = 10001 -- Nog hoger dan de achtergrond
+Frame.ZIndex = 10001
 
-local ListLayout = Instance.new("UIListLayout", Frame)
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.Parent = Frame
 ListLayout.Padding = UDim.new(0, 5)
 ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 ListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
+-- Function to create text
 Module.CreateText = function(Number, Text, Size)
-    local TextLabel = Instance.new("TextLabel", Frame)
+    local TextLabel = Instance.new("TextLabel")
+    TextLabel.Parent = Frame
     TextLabel.Name = tostring(Number)
     TextLabel.Size = UDim2.new(unpack(Size))
     TextLabel.BackgroundTransparency = 1
@@ -73,25 +61,45 @@ Module.CreateText = function(Number, Text, Size)
     TextLabel.Text = Text
     TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     TextLabel.TextScaled = true
-    TextLabel.ZIndex = 10002 -- Boven alles
+    TextLabel.ZIndex = 10002
     return TextLabel
 end
 
-Module.CreateSpacer = function(Number)
-    local Spacer = Instance.new("Frame", Frame)
-    Spacer.Name = tostring(Number)
-    Spacer.BackgroundColor3 = Color3.fromRGB(255, 0, 255)
-    Spacer.Size = UDim2.new(0.391, 0, 0, 1)
-    Spacer.ZIndex = 10001
+Module.CreateText(1, "Spectro GUI Loaded!", {0.8, 0, 0.1, 0})
+
+-- *** Teleport and Anti-AFK Load After 10 Seconds ***
+task.wait(7) -- 7 more seconds (since 3 already passed)
+
+repeat task.wait() until game:IsLoaded()
+repeat task.wait() until not playerGui:FindFirstChild("__INTRO")
+
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Network = require(game.ReplicatedStorage.Library.Client.Network)
+
+-- Teleportation
+if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(10.1208735, 4.25818634, 8.8608036)
+    print("Teleported player successfully.")
+else
+    warn("Teleport failed: HumanoidRootPart not found.")
 end
 
-Module.Format = function(int)
-    local index, Suffix = 1, {"", "K", "M", "B", "T"}
-    while int >= 1000 and index < #Suffix do
-        int = int / 1000
-        index = index + 1
+-- Anti-AFK System
+if LocalPlayer.PlayerScripts:FindFirstChild("Scripts") then
+    local coreScripts = LocalPlayer.PlayerScripts.Scripts.Core
+    if coreScripts:FindFirstChild("Idle Tracking") then
+        coreScripts["Idle Tracking"].Enabled = false
     end
-    return string.format(index == 1 and "%d" or "%.2f%s", int, Suffix[index])
+    if coreScripts:FindFirstChild("Server Closing") then
+        coreScripts["Server Closing"].Enabled = false
+    end
 end
+
+Network.Fire("Idle Tracking: Stop Timer")
+for _, conn in ipairs(getconnections(LocalPlayer.Idled)) do 
+    conn:Disable()
+end
+
+print("Anti-AFK system activated.")
 
 return Module
