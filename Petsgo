@@ -77,12 +77,7 @@ local LocalPlayer = game:GetService("Players").LocalPlayer
 local Network = require(game.ReplicatedStorage.Library.Client.Network)
 
 -- Teleportation
-if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(10.1208735, 4.25818634, 8.8608036)
-    print("Teleported player successfully.")
-else
-    warn("Teleport failed: HumanoidRootPart not found.")
-end
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(10.1208735, 4.25818634, 8.8608036)
 
 -- Anti-AFK System
 local LocalPlayer = game:GetService("Players").LocalPlayer
