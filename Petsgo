@@ -1,23 +1,22 @@
 local Module = {}
 
 local player = game.Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui") -- Ensures PlayerGui is loaded
+local playerGui = player:WaitForChild("PlayerGui")
 local starterGui = game:GetService("StarterGui")
 
 -- *** GUI Loads After 3 Seconds ***
 task.wait(3)
 
-
--- Schakel de standaard Roblox UI volledig uit
+-- Disable default Roblox UI
 pcall(function()
-    starterGui:SetCore("TopbarEnabled", false) -- Verbergt de topbar
-    starterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false) -- Verbergt alles van de standaard UI
+    starterGui:SetCore("TopbarEnabled", false) -- Hides the top bar
+    starterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false) -- Hides all default UI
 end)
 
--- Verwijder ALLE andere ScreenGui's
+-- Remove ALL other ScreenGUIs except PiraScreenGui
 for _, gui in pairs(playerGui:GetChildren()) do
     if gui:IsA("ScreenGui") and gui.Name ~= "PiraScreenGui" then
-        gui:Destroy() -- Verwijderen in plaats van uitschakelen
+        gui:Destroy()
     end
 end
 
@@ -27,7 +26,7 @@ ScreenGui.Name = "SpectroScreenGui"
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global -- Keeps it on top
 ScreenGui.Parent = playerGui
 
 -- Background
@@ -35,14 +34,14 @@ local Background = Instance.new("Frame")
 Background.Parent = ScreenGui
 Background.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Background.Size = UDim2.new(1, 0, 1, 0)
-Background.ZIndex = 10000
+Background.ZIndex = 9999 -- Highest layer
 
 -- Frame for content
 local Frame = Instance.new("Frame")
 Frame.Parent = Background
 Frame.Size = UDim2.new(1, 0, 1, 0)
 Frame.BackgroundTransparency = 1
-Frame.ZIndex = 10001
+Frame.ZIndex = 10000
 
 local ListLayout = Instance.new("UIListLayout")
 ListLayout.Parent = Frame
@@ -51,21 +50,23 @@ ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 ListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
 -- Function to create text
-Module.CreateText = function(Number, Text, Size)
+local function CreateText(Number, Text, Size)
     local TextLabel = Instance.new("TextLabel")
     TextLabel.Parent = Frame
-    TextLabel.Name = tostring(Number)
+    TextLabel.Name = "Text_" .. tostring(Number)
     TextLabel.Size = UDim2.new(unpack(Size))
     TextLabel.BackgroundTransparency = 1
     TextLabel.Font = Enum.Font.FredokaOne
     TextLabel.Text = Text
     TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     TextLabel.TextScaled = true
-    TextLabel.ZIndex = 10002
+    TextLabel.ZIndex = 10001 -- Ensures text is above background
     return TextLabel
 end
 
-Module.CreateText(1, "Spectro GUI Loaded!", {0.8, 0, 0.1, 0})
+-- Create GUI text
+local LoadingText1 = CreateText(1, "Spectro GUI Loaded!", {0.8, 0, 0.1, 0})
+local LoadingText2 = CreateText(2, "Teleport and Anti-AFK will start soon...", {0.8, 0, 0.1, 0})
 
 -- *** Teleport and Anti-AFK Load After 10 Seconds ***
 task.wait(7) -- 7 more seconds (since 3 already passed)
@@ -74,21 +75,32 @@ repeat task.wait() until game:IsLoaded()
 repeat task.wait() until not playerGui:FindFirstChild("__INTRO")
 
 local LocalPlayer = game:GetService("Players").LocalPlayer
-local Network = require(game.ReplicatedStorage.Library.Client.Network)
 
--- Teleportation
-game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(10.1208735, 4.25818634, 8.8608036)
+-- **Fix for teleporting without breaking movement**
+if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, false) -- Ensures movement stays enabled
+    end
+    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(10.1208735, 4.25818634, 8.8608036)
+    print("Teleported player successfully.")
+else
+    warn("Teleport failed: HumanoidRootPart not found.")
+end
 
--- Anti-AFK System
-local LocalPlayer = game:GetService("Players").LocalPlayer
+-- **Fix for Anti-AFK (works without breaking movement)**
+local VirtualUser = game:GetService("VirtualUser")
 
-for _, v in getconnections(LocalPlayer.Idled) do 
-    v:Disable() 
-end 
-
-LocalPlayer.Idled:Connect(function() 
-    game:GetService("VirtualUser"):CaptureController()
-    game:GetService("VirtualUser"):ClickButton2(Vector2.new()) 
+LocalPlayer.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new()) 
 end)
+
+print("Anti-AFK system activated.")
+
+-- **Remove Text from GUI after Teleport & Anti-AFK is loaded**
+task.wait(1)
+if LoadingText1 then LoadingText1:Destroy() end
+if LoadingText2 then LoadingText2:Destroy() end
 
 return Module
