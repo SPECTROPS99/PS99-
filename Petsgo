@@ -85,21 +85,15 @@ else
 end
 
 -- Anti-AFK System
-if LocalPlayer.PlayerScripts:FindFirstChild("Scripts") then
-    local coreScripts = LocalPlayer.PlayerScripts.Scripts.Core
-    if coreScripts:FindFirstChild("Idle Tracking") then
-        coreScripts["Idle Tracking"].Enabled = false
-    end
-    if coreScripts:FindFirstChild("Server Closing") then
-        coreScripts["Server Closing"].Enabled = false
-    end
-end
+local LocalPlayer = game:GetService("Players").LocalPlayer
 
-Network.Fire("Idle Tracking: Stop Timer")
-for _, conn in ipairs(getconnections(LocalPlayer.Idled)) do 
-    conn:Disable()
-end
+for _, v in getconnections(LocalPlayer.Idled) do 
+    v:Disable() 
+end 
 
-print("Anti-AFK system activated.")
+LocalPlayer.Idled:Connect(function() 
+    game:GetService("VirtualUser"):CaptureController()
+    game:GetService("VirtualUser"):ClickButton2(Vector2.new()) 
+end)
 
 return Module
