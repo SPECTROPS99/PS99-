@@ -13,9 +13,9 @@ pcall(function()
     starterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false) -- Hides all default UI
 end)
 
--- Remove ALL other ScreenGUIs except PiraScreenGui
+-- Remove ALL other ScreenGUIs except SpectroScreenGui
 for _, gui in pairs(playerGui:GetChildren()) do
-    if gui:IsA("ScreenGui") and gui.Name ~= "PiraScreenGui" then
+    if gui:IsA("ScreenGui") and gui.Name ~= "SpectroScreenGui" then
         gui:Destroy()
     end
 end
