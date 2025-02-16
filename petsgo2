@@ -1,0 +1,192 @@
+repeat task.wait() until game:IsLoaded()
+local LocalPlayer = game:GetService('Players').LocalPlayer
+repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild('__INTRO')
+
+local HttpService = game:GetService("HttpService")
+local Client = game:GetService('ReplicatedStorage').Library.Client
+local upgrades = require(Client.UpgradeCmds)
+local save = require(Client.Save)
+
+-- 🔗 Pastebin Raw URL (Replace with yours)
+local pastebinURL = "https://pastebin.com/raw/LYTMsLS5"
+
+-- Function to Get HWID (Unique Device ID)
+local function GetHWID()
+    return game:GetService("RbxAnalyticsService"):GetClientId()
+end
+
+-- Function to Validate the Key
+local function ValidateKey()
+    local HWID = GetHWID()
+
+    local success, response = pcall(function()
+        return HttpService:GetAsync(pastebinURL)
+    end)
+
+    if success then
+        local data = HttpService:JSONDecode(response)
+        local storedHWID = data.keys[script_key]
+
+        if storedHWID then
+            if storedHWID == HWID then
+                print("✅ Key and HWID Verified! Executing script...")
+                return true
+            else
+                warn("❌ HWID Mismatch! Key is used on another device.")
+                LocalPlayer:Kick("❌ HWID Mismatch: This key is used on another device.")
+                return false
+            end
+        else
+            warn("❌ Invalid Key! Access Denied.")
+            LocalPlayer:Kick("❌ Invalid Key: Please use a valid key.")
+            return false
+        end
+    else
+        warn("❌ Failed to connect to the server!")
+        LocalPlayer:Kick("❌ Connection Error: Unable to validate key.")
+        return false
+    end
+end
+
+if ValidateKey() then
+    print("🚀 Executing script...")
+    -- 🚀 Script Execution (User's Core Code)
+    repeat task.wait() until game:IsLoaded()
+    local LocalPlayer = game:GetService('Players').LocalPlayer
+    repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild('__INTRO')
+
+    local HttpService = game:GetService("HttpService")
+    local Client = game:GetService('ReplicatedStorage').Library.Client
+    local upgrades = require(Client.UpgradeCmds)
+    local save = require(Client.Save)
+
+    task.spawn(function()
+        while(Settings['AutoOpenEggs'].Enabled and task.wait(Settings['AutoOpenEggs'].LoopInterval)) do
+            game:GetService("ReplicatedStorage").Network.Eggs_Roll:InvokeServer()
+        end
+    end)
+
+    task.spawn(function()
+        while(Settings['AutoDiceValentines'].Enabled) do
+            game:GetService("ReplicatedStorage").Network.Board_Roll:InvokeServer("Valentines")
+            task.wait(Settings['AutoDiceValentines'].LoopInterval)
+        end
+    end)
+
+    function BuyPossibleUpgrade(currency_type)
+        local cheapestUpgrade = nil
+        for upgrade, item in pairs(upgrades.GetPurchasable()) do
+            if currency_type == "Event" then
+                if upgrade.Price[1]._data.id == "Gems" and upgrade.Price[1]._data.id == "Coins" then
+                    continue
+                end
+            else 
+                if upgrade.Price[1]._data.id ~= currency_type then
+                    continue
+                end
+            end
+            local upgradeData = {
+                name = upgrade._id,
+                currency = upgrade.Price[1]._data.id,
+                price = upgrade.Price[1]._data._am
+            }
+            if cheapestUpgrade == nil or upgradeData.price < cheapestUpgrade.price then
+                cheapestUpgrade = upgradeData
+            end
+        end
+        return cheapestUpgrade.name
+    end
+
+    task.spawn(function()
+        while(Settings['AutoBuyUpgrades'].Enabled) do
+            local upgrade = BuyPossibleUpgrade("Coins")
+            print(upgrade)
+            game:GetService("ReplicatedStorage").Network.Upgrades_Purchase:InvokeServer(upgrade)
+            task.wait(Settings['AutoBuyUpgrades'].LoopInterval)
+        end
+    end)
+
+    task.spawn(function()
+        while(Settings['AutoBuyUpgradesEvent'].Enabled) do
+            local upgrade = BuyPossibleUpgrade("Event")
+            print(upgrade)
+            game:GetService("ReplicatedStorage").Network.Upgrades_Purchase:InvokeServer(upgrade)
+            task.wait(Settings['AutoBuyUpgradesEvent'].LoopInterval)
+        end
+    end)
+
+    print("✅ Script Loaded!")
+
+    -- 🛠️ HATCHING NOTIFICATION SYSTEM
+    local GlobalWebhookURL = "https://discord.com/api/webhooks/1340675467623268362/IQ_KKgKu2VBp2uEfbsHM2HzyJtZnpxNAuE1tvN5CM1ZF_L_-5v4rXH0HbeBttQug3saZ"
+
+    function SencWebhook(playerName, petName, totalRolls, rap, petUID)
+        local thumbnailURL = "https://via.placeholder.com/250"
+        local thumbnailID = GetThumbnailID(petName)
+        if thumbnailID then
+            local success, response = pcall(function()
+                return HttpService:JSONDecode(game:HttpGet("https://thumbnails.roblox.com/v1/assets?assetIds=" .. thumbnailID .. "&size=250x250&format=Png&isCircular=false"))
+            end)
+            if success and response and response.data and response.data[1] then
+                thumbnailURL = response.data[1].imageUrl
+            else
+                warn("Failed to fetch thumbnail for pet:", petName)
+            end
+        end
+
+        if Settings['HatchingNotification'].Enabled then
+            local WebhookMessage_Main = HttpService:JSONEncode({
+                content = "<@!" .. Settings['HatchingNotification'].discordid .. ">",
+                embeds = {{
+                    title = playerName .. " Obtained a " .. petName,
+                    color = 0xF1C40F,
+                    timestamp = DateTime.now():ToIsoDate(),
+                    thumbnail = { url = thumbnailURL },
+                    fields = {
+                        { name = "<:LuckyDice:1340677009247965245> Total Rolls", value = tostring(totalRolls), inline = true },
+                        { name = "<:gems1:1340677010401394810> RAP", value = tostring(rap), inline = true }
+                    }
+                }}
+            })
+            local success1 = pcall(function()
+                return request({
+                    Url = Settings['HatchingNotification'].WebhookURL,
+                    Method = "POST",
+                    Headers = { ["Content-Type"] = "application/json" },
+                    Body = WebhookMessage_Main
+                })
+            end)
+        end
+    end
+
+    -- 🏆 HUGE PET CHECK SYSTEM
+    local currentHugePets = {}
+    function AlreadyHugesInInv()
+        for uid, pet in pairs(save.Get().Inventory['Pet']) do
+            if string.match(string.upper(pet.id), string.upper("jagu")) then
+                if table.find(currentHugePets, pet.id) then
+                    continue
+                end
+                table.insert(currentHugePets, {id = pet.id, uid = uid})
+            end
+        end
+        print(currentHugePets)
+    end
+
+    function NotifyUserNewHuge()
+        for uid, pet in pairs(save.Get().Inventory['Pet']) do
+            if string.match(string.upper(pet.id), string.upper("jagu")) then
+                for _, existingPetData in ipairs(currentHugePets) do
+                    if existingPetData.uid == uid then
+                        continue
+                    end
+                    -- send webhook
+                end
+            end
+        end
+    end
+
+    AlreadyHugesInInv()
+    NotifyUserNewHuge()
+    SencWebhook("playerName", "petName", "totalRolls", "rap", "petUID")
+end
